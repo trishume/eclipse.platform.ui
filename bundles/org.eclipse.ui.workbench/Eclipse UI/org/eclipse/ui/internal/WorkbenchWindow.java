@@ -74,7 +74,6 @@ import org.eclipse.e4.ui.workbench.renderers.swt.TrimBarLayout;
 import org.eclipse.e4.ui.workbench.swt.factories.IRendererFactory;
 import org.eclipse.jface.action.AbstractGroupMarker;
 import org.eclipse.jface.action.ActionContributionItem;
-import org.eclipse.jface.action.ContributionManager;
 import org.eclipse.jface.action.CoolBarManager;
 import org.eclipse.jface.action.GroupMarker;
 import org.eclipse.jface.action.IAction;
@@ -157,7 +156,6 @@ import org.eclipse.ui.internal.services.WorkbenchLocationService;
 import org.eclipse.ui.internal.util.PrefUtil;
 import org.eclipse.ui.menus.CommandContributionItem;
 import org.eclipse.ui.menus.IMenuService;
-import org.eclipse.ui.menus.MenuUtil;
 import org.eclipse.ui.presentations.AbstractPresentationFactory;
 import org.eclipse.ui.services.IDisposable;
 import org.eclipse.ui.services.IEvaluationService;
@@ -1485,13 +1483,16 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 			fireWindowClosed();
 
 			// time to wipe our our populate
-			IMenuService menuService = (IMenuService) workbench.getService(IMenuService.class);
-			menuService.releaseContributions(((ContributionManager) getActionBars()
-					.getMenuManager()));
-			ICoolBarManager coolbar = getActionBars().getCoolBarManager();
-			if (coolbar != null) {
-				menuService.releaseContributions(((ContributionManager) coolbar));
-			}
+			// IMenuService menuService = (IMenuService)
+			// workbench.getService(IMenuService.class);
+			// menuService.releaseContributions(((ContributionManager)
+			// getActionBars()
+			// .getMenuManager()));
+			// ICoolBarManager coolbar = getActionBars().getCoolBarManager();
+			// if (coolbar != null) {
+			// menuService.releaseContributions(((ContributionManager)
+			// coolbar));
+			// }
 
 			getActionBarAdvisor().dispose();
 			getWindowAdvisor().dispose();
@@ -1988,15 +1989,17 @@ public class WorkbenchWindow implements IWorkbenchWindow {
 			getActionBarAdvisor().fillActionBars(flags);
 			//
 			// 3.3 start
-			final IMenuService menuService = (IMenuService) serviceLocator
-					.getService(IMenuService.class);
-			menuService.populateContributionManager((ContributionManager) getActionBars()
-					.getMenuManager(), MenuUtil.MAIN_MENU);
-			ICoolBarManager coolbar = getActionBars().getCoolBarManager();
-			if (coolbar != null) {
-				menuService.populateContributionManager((ContributionManager) coolbar,
-						MenuUtil.MAIN_TOOLBAR);
-			}
+			// final IMenuService menuService = (IMenuService) serviceLocator
+			// .getService(IMenuService.class);
+			// menuService.populateContributionManager((ContributionManager)
+			// getActionBars()
+			// .getMenuManager(), MenuUtil.MAIN_MENU);
+			// ICoolBarManager coolbar = getActionBars().getCoolBarManager();
+			// if (coolbar != null) {
+			// menuService.populateContributionManager((ContributionManager)
+			// coolbar,
+			// MenuUtil.MAIN_TOOLBAR);
+			// }
 			// 3.3 end
 		} finally {
 			workbench.largeUpdateEnd();

@@ -20,14 +20,21 @@ import org.eclipse.e4.core.contexts.ContextFunction;
 import org.eclipse.e4.core.contexts.IEclipseContext;
 import org.eclipse.e4.ui.internal.workbench.ContributionsAnalyzer;
 import org.eclipse.e4.ui.model.application.MApplication;
+import org.eclipse.e4.ui.model.application.ui.MElementContainer;
+import org.eclipse.e4.ui.model.application.ui.MUIElement;
+import org.eclipse.e4.ui.model.application.ui.menu.MMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenuContribution;
+import org.eclipse.e4.ui.model.application.ui.menu.MPopupMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MToolBarContribution;
 import org.eclipse.e4.ui.model.application.ui.menu.impl.MenuFactoryImpl;
 import org.eclipse.e4.ui.workbench.modeling.ExpressionContext;
 import org.eclipse.e4.ui.workbench.renderers.swt.ContributionRecord;
+import org.eclipse.e4.ui.workbench.renderers.swt.MenuManagerRenderer;
 import org.eclipse.e4.ui.workbench.renderers.swt.ToolBarContributionRecord;
+import org.eclipse.e4.ui.workbench.swt.factories.IRendererFactory;
 import org.eclipse.jface.action.ContributionManager;
 import org.eclipse.jface.action.IContributionItem;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.ui.ISourceProvider;
 import org.eclipse.ui.internal.e4.compatibility.E4Util;
 import org.eclipse.ui.internal.services.ServiceLocator;
@@ -170,8 +177,40 @@ public class WorkbenchMenuService implements IMenuService {
 	 * @see org.eclipse.ui.menus.IMenuService#populateContributionManager(org.eclipse.jface.action.ContributionManager, java.lang.String)
 	 */
 	public void populateContributionManager(ContributionManager mgr, String location) {
-		// TODO Auto-generated method stub
-
+		MenuLocationURI locationURI = new MenuLocationURI(location);
+		if (inToolbar(locationURI)) {
+			return;
+		}
+		IRendererFactory factory = e4Context.get(IRendererFactory.class);
+		Object obj = factory
+				.getRenderer(MenuFactoryImpl.eINSTANCE.createMenu(), null);
+		if (!(obj instanceof MenuManagerRenderer)) {
+			return;
+		}
+		MenuManager manager = (MenuManager) mgr;
+		MenuManagerRenderer renderer = (MenuManagerRenderer) obj;
+		MMenu menuModel = renderer.getMenuModel(manager);
+		if (menuModel != null && locationURI.getPath().equals(menuModel.getElementId())) {
+			return;
+		}
+		if ("popup".equals(locationURI.getScheme())) { //$NON-NLS-1$
+			menuModel = MenuFactoryImpl.eINSTANCE.createPopupMenu();
+			menuModel.getTags().add(ContributionsAnalyzer.MC_POPUP);
+			IEclipseContext ctx = e4Context.createChild();
+			((MPopupMenu) menuModel).setContext(ctx);
+		} else if ("menu".equals(locationURI.getScheme())) { //$NON-NLS-1$
+			menuModel = MenuFactoryImpl.eINSTANCE.createMenu();
+			menuModel.getTags().add(ContributionsAnalyzer.MC_MENU);
+		} else {
+			return;
+		}
+		menuModel.setElementId(locationURI.getPath());
+		renderer.linkModelToManager(menuModel, manager);
+		obj = menuModel;
+		if (!manager.getRemoveAllWhenShown()) {
+			renderer.processContributions(menuModel, false, "popup".equals(locationURI.getScheme())); //$NON-NLS-1$
+		}
+		renderer.processContents((MElementContainer<MUIElement>) obj);
 	}
 
 	/* (non-Javadoc)
