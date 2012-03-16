@@ -695,10 +695,17 @@ public class HandledContributionItem extends ContributionItem {
 
 			ParameterizedCommand command = model.getWbCommand();
 			if (command != null) {
-				State state = command.getCommand()
-						.getState(IMenuStateIds.STYLE);
-				if (state != null) {
-					state.removeListener(stateListener);
+				if (styleState != null) {
+					styleState.removeListener(stateListener);
+					styleState = null;
+				}
+				if (toggleState != null) {
+					toggleState.removeListener(stateListener);
+					toggleState = null;
+				}
+				if (radioState != null) {
+					radioState.removeListener(stateListener);
+					radioState = null;
 				}
 			}
 			widget.dispose();
