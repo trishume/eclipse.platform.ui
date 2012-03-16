@@ -78,6 +78,21 @@ import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Widget;
 
 public class HandledContributionItem extends ContributionItem {
+	/**
+	 * Constant from org.eclipse.ui.handlers.RadioState.PARAMETER_ID
+	 */
+	private static final String ORG_ECLIPSE_UI_COMMANDS_RADIO_STATE_PARAMETER = "org.eclipse.ui.commands.radioStateParameter"; //$NON-NLS-1$
+
+	/**
+	 * Constant from org.eclipse.ui.handlers.RadioState.STATE_ID
+	 */
+	private static final String ORG_ECLIPSE_UI_COMMANDS_RADIO_STATE = "org.eclipse.ui.commands.radioState"; //$NON-NLS-1$
+
+	/**
+	 * Constant from org.eclipse.ui.handlers.RegistryToggleState.STATE_ID
+	 */
+	private static final String ORG_ECLIPSE_UI_COMMANDS_TOGGLE_STATE = "org.eclipse.ui.commands.toggleState"; //$NON-NLS-1$
+
 	static class RunnableRunner implements ISafeRunnable {
 		private Runnable runnable;
 
@@ -266,17 +281,15 @@ public class HandledContributionItem extends ContributionItem {
 				styleState = parmCmd.getCommand().getState(IMenuStateIds.STYLE);
 
 				toggleState = parmCmd.getCommand().getState(
-						"org.eclipse.ui.commands.toggleState"); //$NON-NLS-1$
+						ORG_ECLIPSE_UI_COMMANDS_TOGGLE_STATE);
 				radioState = parmCmd.getCommand().getState(
-						"org.eclipse.ui.commands.radioState"); //$NON-NLS-1$
+						ORG_ECLIPSE_UI_COMMANDS_RADIO_STATE);
 				updateState();
 				if (styleState != null) {
 					styleState.addListener(stateListener);
-				}
-				if (toggleState != null) {
+				} else if (toggleState != null) {
 					toggleState.addListener(stateListener);
-				}
-				if (radioState != null) {
+				} else if (radioState != null) {
 					radioState.addListener(stateListener);
 				}
 				return;
@@ -293,17 +306,15 @@ public class HandledContributionItem extends ContributionItem {
 			styleState = parmCmd.getCommand().getState(IMenuStateIds.STYLE);
 
 			toggleState = parmCmd.getCommand().getState(
-					"org.eclipse.ui.commands.toggleState"); //$NON-NLS-1$
+					ORG_ECLIPSE_UI_COMMANDS_TOGGLE_STATE);
 			radioState = parmCmd.getCommand().getState(
-					"org.eclipse.ui.commands.radioState"); //$NON-NLS-1$
+					ORG_ECLIPSE_UI_COMMANDS_RADIO_STATE);
 			updateState();
 			if (styleState != null) {
 				styleState.addListener(stateListener);
-			}
-			if (toggleState != null) {
+			} else if (toggleState != null) {
 				toggleState.addListener(stateListener);
-			}
-			if (radioState != null) {
+			} else if (radioState != null) {
 				radioState.addListener(stateListener);
 			}
 		}
@@ -317,7 +328,7 @@ public class HandledContributionItem extends ContributionItem {
 		} else if (radioState != null && model.getWbCommand() != null) {
 			ParameterizedCommand c = model.getWbCommand();
 			Object parameter = c.getParameterMap().get(
-					"org.eclipse.ui.commands.radioStateParameter"); //$NON-NLS-1$
+					ORG_ECLIPSE_UI_COMMANDS_RADIO_STATE_PARAMETER);
 			String value = (String) radioState.getValue();
 			model.setSelected(value != null && value.equals(parameter));
 		}
