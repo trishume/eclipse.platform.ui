@@ -372,7 +372,7 @@ public final class BindingService implements IBindingService {
 				}
 			};
 		}
-		bp.read();
+		// bp.read();
 	}
 
 	private void saveLegacyPreferences(Scheme activeScheme, Binding[] bindings) throws IOException {
