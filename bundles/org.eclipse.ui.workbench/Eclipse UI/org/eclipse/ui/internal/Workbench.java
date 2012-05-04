@@ -2019,7 +2019,7 @@ UIEvents.Context.TOPIC_CONTEXT,
 			}
 		});
 
-		bindingService[0].readRegistryAndPreferences(commandService[0]);
+		// bindingService[0].readRegistryAndPreferences(commandService[0]);
 		serviceLocator.registerService(IBindingService.class, bindingService[0]);
 
 		final CommandImageManager commandImageManager = new CommandImageManager();

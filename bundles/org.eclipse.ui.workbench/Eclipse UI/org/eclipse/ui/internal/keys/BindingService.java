@@ -99,7 +99,9 @@ public final class BindingService implements IBindingService {
 	 * @see org.eclipse.ui.services.IDisposable#dispose()
 	 */
 	public void dispose() {
-		bp.dispose();
+		if (bp != null) {
+			bp.dispose();
+		}
 	}
 
 	@Inject
@@ -373,7 +375,7 @@ public final class BindingService implements IBindingService {
 				}
 			};
 		}
-		// bp.read();
+		bp.read();
 	}
 
 	private void saveLegacyPreferences(Scheme activeScheme, Binding[] bindings) throws IOException {
