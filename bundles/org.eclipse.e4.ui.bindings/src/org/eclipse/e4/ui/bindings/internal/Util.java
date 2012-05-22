@@ -642,6 +642,36 @@ public final class Util {
 		return SWT.getPlatform();
 	}
 
+	/*
+	 * 
+	 */
+	/**
+	 * Copied from org.eclipse.jface.bindings.BindingManager.compareSchemes(String, String). takes
+	 * an array of scheme IDs, child schemes first.
+	 * 
+	 * @param activeSchemeIds
+	 * @param schemeId1
+	 * @param schemeId2
+	 * @return an int based on scheme 1 < scheme 2
+	 */
+	public static int compareSchemes(String[] activeSchemeIds, final String schemeId1,
+			final String schemeId2) {
+		if (activeSchemeIds == null) {
+			return 0;
+		}
+		if (!schemeId2.equals(schemeId1)) {
+			for (int i = 0; i < activeSchemeIds.length; i++) {
+				final String schemePointer = activeSchemeIds[i];
+				if (schemeId2.equals(schemePointer)) {
+					return 1;
+				} else if (schemeId1.equals(schemePointer)) {
+					return -1;
+				}
+			}
+		}
+		return 0;
+	}
+
 	/**
 	 * This class should never be constructed.
 	 */

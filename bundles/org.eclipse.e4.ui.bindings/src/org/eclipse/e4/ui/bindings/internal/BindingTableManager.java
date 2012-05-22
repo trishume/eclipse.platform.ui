@@ -137,7 +137,8 @@ public class BindingTableManager {
 				if (result == null) {
 					result = currentResult;
 				} else {
-					int rc = compareSchemes(result.getSchemeId(), currentResult.getSchemeId());
+					int rc = Util.compareSchemes(activeSchemeIds, result.getSchemeId(),
+							currentResult.getSchemeId());
 					if (rc < 0) {
 						result = currentResult;
 					}
@@ -239,27 +240,6 @@ public class BindingTableManager {
 	 */
 	public void setActiveSchemes(String[] activeSchemeIds) {
 		this.activeSchemeIds = activeSchemeIds;
-	}
-
-	/*
-	 * Copied from org.eclipse.jface.bindings.BindingManager.compareSchemes(String, String)
-	 * 
-	 * Returns an in based on scheme 1 < scheme 2
-	 */
-	private final int compareSchemes(final String schemeId1, final String schemeId2) {
-		if (activeSchemeIds == null) {
-			return 0;
-		}
-		if (!schemeId2.equals(schemeId1)) {
-			for (int i = 0; i < activeSchemeIds.length; i++) {
-				final String schemePointer = activeSchemeIds[i];
-				if (schemeId2.equals(schemePointer)) {
-					return 1;
-				} else if (schemeId1.equals(schemePointer)) {
-					return -1;
-				}
-			}
-		}
-		return 0;
+		BindingTable.BEST_SEQUENCE.setActiveSchemes(activeSchemeIds);
 	}
 }

@@ -30,8 +30,19 @@ import org.eclipse.jface.bindings.keys.KeyStroke;
  * manage tables of bindings that can be used to look up commands from keys.
  */
 public class BindingTable {
-	public static final Comparator<Binding> BEST_SEQUENCE = new Comparator<Binding>() {
+	static class BindingComparator implements Comparator<Binding> {
+		private String[] activeSchemeIds;
+
+		public void setActiveSchemes(String[] activeSchemeIds) {
+			this.activeSchemeIds = activeSchemeIds;
+		}
+
 		public int compare(Binding o1, Binding o2) {
+			int rc = Util.compareSchemes(activeSchemeIds, o1.getSchemeId(), o2.getSchemeId());
+			if (rc != 0) {
+				return rc;
+			}
+
 			/*
 			 * Check to see which has the least number of triggers in the trigger sequence.
 			 */
@@ -83,7 +94,10 @@ public class BindingTable {
 
 			return strokeCount;
 		}
-	};
+	}
+
+	public static final BindingComparator BEST_SEQUENCE = new BindingComparator();
+
 	private Context tableId;
 	private ArrayList<Binding> bindings = new ArrayList<Binding>();
 	private Map<TriggerSequence, Binding> bindingsByTrigger = new HashMap<TriggerSequence, Binding>();

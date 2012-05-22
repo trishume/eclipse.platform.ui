@@ -92,6 +92,13 @@ public final class BindingService implements IBindingService {
 
 	private String[] activeSchemeIds;
 	
+	public void setActiveScheme(final Scheme activeScheme) {
+		if (activeScheme != null) {
+			activeSchemeIds = getSchemeIds(activeScheme.getId());
+			tableManager.setActiveSchemes(activeSchemeIds);
+		}
+	}
+
 	/**
 	 * Key assist dialog for workbench key bindings, lazily created and cached
 	 */
@@ -102,10 +109,7 @@ public final class BindingService implements IBindingService {
 	@PostConstruct
 	void init() {
 		final Scheme activeScheme = manager.getActiveScheme();
-		if (activeScheme != null) {
-			activeSchemeIds = getSchemeIds(activeScheme.getId());
-			tableManager.setActiveSchemes(activeSchemeIds);
-		}
+		setActiveScheme(activeScheme);
 	}
 
 	/*
@@ -419,8 +423,7 @@ public final class BindingService implements IBindingService {
 	private void persistToModel(Scheme activeScheme) {
 		// save the active scheme to the model
 		writeSchemeToModel(activeScheme);
-		activeSchemeIds = getSchemeIds(activeScheme.getId());
-		tableManager.setActiveSchemes(activeSchemeIds);
+		setActiveScheme(activeScheme);
 
 		// weeds out any of the deleted system bindings using the binding
 		// manager
@@ -527,29 +530,6 @@ public final class BindingService implements IBindingService {
 		return strings.toArray(new String[strings.size()]);
 	}
 
-	/*
-	 * Copied from
-	 * org.eclipse.jface.bindings.BindingManager.compareSchemes(String, String)
-	 * 
-	 * Returns an in based on scheme 1 < scheme 2
-	 */
-	private final int compareSchemes(final String schemeId1, final String schemeId2) {
-		if (activeSchemeIds == null) {
-			return 0;
-		}
-		if (!schemeId2.equals(schemeId1)) {
-			for (int i = 0; i < activeSchemeIds.length; i++) {
-				final String schemePointer = activeSchemeIds[i];
-				if (schemeId2.equals(schemePointer)) {
-					return 1;
-				} else if (schemeId1.equals(schemePointer)) {
-					return -1;
-				}
-			}
-		}
-		return 0;
-	}
-
 	/**
 	 * Compare 2 bindings, taking into account Scheme and type.
 	 * 
@@ -563,7 +543,8 @@ public final class BindingService implements IBindingService {
 		final Scheme s1 = manager.getScheme(current.getSchemeId());
 		final Scheme s2 = manager.getScheme(addition.getSchemeId());
 		if (!s1.equals(s2)) {
-			int rc = compareSchemes(s1.getId(), s2.getId());
+			int rc = org.eclipse.e4.ui.bindings.internal.Util.compareSchemes(activeSchemeIds,
+					s1.getId(), s2.getId());
 			if (rc != 0) {
 				// this is because the compare is inverted
 				return rc > 0 ? -1 : 1;
