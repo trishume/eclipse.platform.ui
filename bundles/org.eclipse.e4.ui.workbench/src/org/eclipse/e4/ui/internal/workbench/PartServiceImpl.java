@@ -91,11 +91,13 @@ public class PartServiceImpl implements EPartService {
 							engine.createGui(selectedPart);
 							firePartVisible(selectedPart);
 							firePartBroughtToTop(selectedPart);
+							UIEvents.publishEvent(UIEvents.UILifeCycle.BRINGTOTOP, selectedPart);
 						}
 					} else if (placeholder.getParent().getRenderer() != null) {
 						engine.createGui(placeholder);
 						firePartVisible(selectedPart);
 						firePartBroughtToTop(selectedPart);
+						UIEvents.publishEvent(UIEvents.UILifeCycle.BRINGTOTOP, selectedPart);
 					}
 				}
 			}

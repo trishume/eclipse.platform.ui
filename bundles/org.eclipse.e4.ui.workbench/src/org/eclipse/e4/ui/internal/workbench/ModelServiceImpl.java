@@ -381,10 +381,10 @@ public class ModelServiceImpl implements EModelService {
 			}
 
 			window.getParent().setSelectedElement(window);
+			UIEvents.publishEvent(UIEvents.UILifeCycle.BRINGTOTOP, element);
 		} else {
 			showElementInWindow(window, element);
 		}
-		UIEvents.publishEvent(UIEvents.UILifeCycle.BRINGTOTOP, element);
 	}
 
 	private void showElementInWindow(MWindow window, MUIElement element) {
