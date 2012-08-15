@@ -193,18 +193,9 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 		}
 
 		public void partVisible(MPart part) {
-			// ignored, use the BRINGTOTOP event instead
+			firePartVisible(part);
 		}
 	}
-
-	private EventHandler bringToTopHandler = new EventHandler() {
-		public void handleEvent(Event event) {
-			Object element = event.getProperty(UIEvents.EventTags.ELEMENT);
-			if (element instanceof MPart) {
-				firePartVisible((MPart) element);
-			}
-		}
-	};
 
 	ArrayList<MPart> activationList = new ArrayList<MPart>();
 
@@ -1726,7 +1717,6 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 			legacyWindow.setActivePage(null);
 			partService.removePartListener(e4PartListener);
 			broker.unsubscribe(selectionHandler);
-			broker.unsubscribe(bringToTopHandler);
 			broker.unsubscribe(areaWidgetHandler);
 			broker.unsubscribe(referenceRemovalEventHandler);
 
@@ -2633,12 +2623,8 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 		}
 
 		broker.subscribe(UIEvents.ElementContainer.TOPIC_SELECTEDELEMENT, selectionHandler);
-		broker.subscribe(UIEvents.UILifeCycle.BRINGTOTOP, bringToTopHandler);
-		broker.subscribe(UIEvents.UIElement.TOPIC_WIDGET,
-				areaWidgetHandler);
-		broker.subscribe(
-UIEvents.UIElement.TOPIC_TOBERENDERED,
-				referenceRemovalEventHandler);
+		broker.subscribe(UIEvents.UIElement.TOPIC_WIDGET, areaWidgetHandler);
+		broker.subscribe(UIEvents.UIElement.TOPIC_TOBERENDERED, referenceRemovalEventHandler);
 
 		MPerspectiveStack perspectiveStack = getPerspectiveStack();
 		if (perspectiveStack != null) {
