@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.WeakHashMap;
 import javax.annotation.PostConstruct;
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.core.runtime.CoreException;
@@ -1719,6 +1720,7 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 			broker.unsubscribe(selectionHandler);
 			broker.unsubscribe(areaWidgetHandler);
 			broker.unsubscribe(referenceRemovalEventHandler);
+			broker.unsubscribe(firingHandler);
 
 			ISelectionService selectionService = getWorkbenchWindow().getSelectionService();
 			for (ISelectionListener listener : selectionListeners) {
@@ -2625,6 +2627,7 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 		broker.subscribe(UIEvents.ElementContainer.TOPIC_SELECTEDELEMENT, selectionHandler);
 		broker.subscribe(UIEvents.UIElement.TOPIC_WIDGET, areaWidgetHandler);
 		broker.subscribe(UIEvents.UIElement.TOPIC_TOBERENDERED, referenceRemovalEventHandler);
+		broker.subscribe(UIEvents.Contribution.TOPIC_OBJECT, firingHandler);
 
 		MPerspectiveStack perspectiveStack = getPerspectiveStack();
 		if (perspectiveStack != null) {
@@ -4460,8 +4463,36 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 					}
 				});
 			}
+		} else {
+			Integer val = partEvents.get(part);
+			if (val == null) {
+				partEvents.put(part, Integer.valueOf(2));
+			} else {
+				partEvents.put(part, Integer.valueOf(val.intValue() | 2));
+			}
 		}
 	}
+
+	private WeakHashMap<MPart, Integer> partEvents = new WeakHashMap<MPart, Integer>();
+
+	private EventHandler firingHandler = new EventHandler() {
+		public void handleEvent(Event event) {
+			MUIElement element = (MUIElement) event.getProperty(UIEvents.EventTags.ELEMENT);
+			Object value = event.getProperty(UIEvents.EventTags.NEW_VALUE);
+			if (value instanceof CompatibilityPart && element instanceof MPart) {
+				Integer events = partEvents.remove(element);
+				if (events != null) {
+					int e = events.intValue();
+					if ((e & 1) == 1) {
+						firePartVisible((MPart) element);
+					}
+					if ((e & 2) == 2) {
+						firePartBroughtToTop((MPart) element);
+					}
+				}
+			}
+		}
+	};
 
 	// FIXME: convert me to e4 events!
 	private void firePartVisible(MPart part) {
@@ -4476,6 +4507,13 @@ public class WorkbenchPage extends CompatibleWorkbenchPage implements
 						((IPartListener2) listener).partVisible(partReference);
 					}
 				});
+			}
+		} else {
+			Integer val = partEvents.get(part);
+			if (val == null) {
+				partEvents.put(part, Integer.valueOf(1));
+			} else {
+				partEvents.put(part, Integer.valueOf(val.intValue() | 1));
 			}
 		}
 	}
