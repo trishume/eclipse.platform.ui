@@ -24,13 +24,25 @@ import java.util.Map;
 import java.util.Set;
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.ParameterizedCommand;
+import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.e4.core.commands.ECommandService;
 import org.eclipse.e4.core.contexts.IEclipseContext;
+import org.eclipse.e4.ui.bindings.EBindingService;
 import org.eclipse.e4.ui.model.application.MApplication;
+import org.eclipse.e4.ui.model.application.commands.MParameter;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
+import org.eclipse.e4.ui.model.application.ui.basic.MTrimBar;
+import org.eclipse.e4.ui.model.application.ui.basic.MTrimElement;
+import org.eclipse.e4.ui.model.application.ui.menu.MHandledItem;
+import org.eclipse.e4.ui.model.application.ui.menu.MItem;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenu;
 import org.eclipse.e4.ui.model.application.ui.menu.MMenuElement;
 import org.eclipse.e4.ui.model.application.ui.menu.MOpaqueMenuItem;
+import org.eclipse.e4.ui.model.application.ui.menu.MOpaqueToolItem;
+import org.eclipse.e4.ui.model.application.ui.menu.MToolBar;
+import org.eclipse.e4.ui.model.application.ui.menu.MToolBarElement;
+import org.eclipse.e4.ui.model.application.ui.menu.MToolBarSeparator;
 import org.eclipse.e4.ui.workbench.IResourceUtilities;
 import org.eclipse.e4.ui.workbench.renderers.swt.MenuManagerRenderer;
 import org.eclipse.e4.ui.workbench.renderers.swt.ToolBarManagerRenderer;
@@ -52,6 +64,7 @@ import org.eclipse.jface.action.SubContributionItem;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.bindings.Binding;
 import org.eclipse.jface.bindings.BindingManager;
+import org.eclipse.jface.bindings.TriggerSequence;
 import org.eclipse.jface.dialogs.TrayDialog;
 import org.eclipse.jface.internal.provisional.action.IToolBarContributionItem;
 import org.eclipse.jface.internal.provisional.action.ToolBarContributionItem2;
@@ -101,7 +114,6 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.CoolBar;
-import org.eclipse.swt.widgets.CoolItem;
 import org.eclipse.swt.widgets.Decorations;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -115,7 +127,6 @@ import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.TableItem;
-import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.ui.IActionBars2;
@@ -256,6 +267,7 @@ public class CustomizePerspectiveDialog extends TrayDialog {
 	ToolBarManagerRenderer toolbarMngrRenderer;
 
 	private ISWTResourceUtilities resUtils;
+	private IEclipseContext context;
 
 	/**
 	 * A Listener for a list of command groups, that updates the viewer and
@@ -1454,6 +1466,7 @@ public class CustomizePerspectiveDialog extends TrayDialog {
 		super(configurer.getWindow().getShell());
 		this.treeManager = new TreeManager();
 		this.configurer = configurer;
+		this.context = context;
 		perspective = persp;
 		window = (WorkbenchWindow) configurer.getWindow();
 		application = context.get(MApplication.class);
@@ -2682,7 +2695,7 @@ public class CustomizePerspectiveDialog extends TrayDialog {
 		customizeActionBars.coolBarManager.update(true);
 
 		shortcuts = new Category(""); //$NON-NLS-1$
-		toolBarItems = createToolBarStructure(cb);
+		toolBarItems = createToolBarStructure(window.getTopTrim());
 		menuItems = createMenuStructure(window.getModel().getMainMenu());
 	}
 
@@ -3088,77 +3101,169 @@ public class CustomizePerspectiveDialog extends TrayDialog {
 		}
 	}
 
-	private DisplayItem createToolBarStructure(CoolBar coolbar) {
+	private DisplayItem createToolBarStructure(MTrimBar toolbar) {
 		DisplayItem root = new DisplayItem(null, null); // Create a
-																	// root
-		createToolbarEntries(coolbar, root);
+		// root
+		createToolbarEntries(toolbar, root);
 		return root;
 	}
 
-	private void createToolbarEntries(CoolBar coolbar, DisplayItem parent) {
-		if (coolbar == null)
+	private boolean hasVisibleItems(MToolBar toolBar) {
+		for (MToolBarElement e : toolBar.getChildren()) {
+			if (!(e instanceof MToolBarSeparator)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void createToolbarEntries(MTrimBar toolbar, DisplayItem parent) {
+		if (toolbar == null)
 			return;
-		CoolItem[] items = coolbar.getItems();
-		List entries = new ArrayList(items.length);
-
-		for (int i = 0; i < items.length; i++) {
-			IContributionItem contributionItem = (IContributionItem) items[i]
-					.getData();
-			String text;
-			if (contributionItem instanceof IToolBarContributionItem) {
-				IToolBarContributionItem item = (IToolBarContributionItem) contributionItem;
-				text = getToolbarLabel(item.getId());
-				if (text == null || text.equals("")) //$NON-NLS-1$
-					text = items[i].getText();
-
-			} else {
-				text = items[i].getText();
+		for (MTrimElement trimElement : toolbar.getChildren()) {
+			if (trimElement instanceof MToolBar) {
+				MToolBar toolBar = (MToolBar) trimElement;
+				String text;
+				ToolBarManager manager = toolbarMngrRenderer.getManager(toolBar);
+				if (manager != null && hasVisibleItems(toolBar)) {
+					IContributionItem contributionItem = (IContributionItem) trimElement
+							.getTransientData().get("coolbar.object"); //$NON-NLS-1$
+					Object name = trimElement.getTransientData().get("Name"); //$NON-NLS-1$
+					if (name != null) {// && ((String) name).length() != 0
+						text = (String) name;
+					} else {
+						text = getToolbarLabel(trimElement.getElementId());
+					}
+					DisplayItem toolBarEntry = new DisplayItem(text, contributionItem);
+					toolBarEntry.setImageDescriptor(toolbarImageDescriptor);
+					toolBarEntry.setActionSet((ActionSet) idToActionSet
+							.get(getActionSetID(trimElement)));
+					parent.addChild(toolBarEntry);
+					createToolbarEntries((MToolBar) trimElement, toolBarEntry);
+				}
 			}
-			DisplayItem toolBarEntry = new DisplayItem(text,
-					contributionItem);
-			if (items[i].getImage() == null) {
-				toolBarEntry.setImageDescriptor(toolbarImageDescriptor);
-			}
-			toolBarEntry.setActionSet((ActionSet) idToActionSet
-					.get(getActionSetID(contributionItem)));
-			parent.addChild(toolBarEntry);
-
-			Control control = items[i].getControl();
-
-			if (control instanceof ToolBar) {
-				ToolItem[] toolitems = ((ToolBar) control).getItems();
-				createToolbarEntries(toolitems, toolBarEntry);
-			}
-
-			entries.add(toolBarEntry);
 		}
 	}
 
-	private void createToolbarEntries(ToolItem[] toolitems,
-			DisplayItem parent) {
-		if (toolitems == null)
+	private void createToolbarEntries(MToolBar toolbar, DisplayItem parent) {
+		if (toolbar == null)
 			return;
-
-		for (int i = 0; i < toolitems.length; i++) {
-			IContributionItem contributionItem = (IContributionItem) toolitems[i]
-					.getData();
-			if (contributionItem.isGroupMarker()
-					|| contributionItem.isSeparator()) {
+		for (MToolBarElement element : toolbar.getChildren()) {
+			IContributionItem contributionItem = toolbarMngrRenderer.getContribution(element);
+			if (element instanceof MToolBarSeparator
+					|| (contributionItem == null || contributionItem.isGroupMarker() || contributionItem
+							.isSeparator())) {
 				continue;
 			}
-			DisplayItem toolBarEntry = new DisplayItem(toolitems[i]
-					.getToolTipText(), contributionItem);
-			Image image = toolitems[i].getImage();
-			if (image != null) {
-				toolBarEntry.setImageDescriptor(ImageDescriptor
-						.createFromImage(image));
+
+			if (element instanceof MOpaqueToolItem) {
+				if (contributionItem instanceof ActionContributionItem) {
+					final IAction action = ((ActionContributionItem) contributionItem).getAction();
+					DisplayItem toolbarEntry = new DisplayItem(action.getText(), contributionItem);
+					toolbarEntry.setImageDescriptor(action.getImageDescriptor());
+					toolbarEntry.setActionSet((ActionSet) idToActionSet
+							.get(getActionSetID(contributionItem)));
+					if (toolbarEntry.getChildren().isEmpty()) {
+						toolbarEntry.setCheckState(getToolbarItemIsVisible(toolbarEntry));
+					}
+					parent.addChild(toolbarEntry);
+				}
+			} else {
+				String text = null;
+				if (element instanceof MItem) {
+					text = getToolTipText((MItem) element);
+				}
+				ImageDescriptor iconDescriptor = null;
+				String iconURI = element instanceof MItem ? ((MItem) element).getIconURI() : null;
+				if (iconURI != null && iconURI.length() > 0) {
+					iconDescriptor = resUtils.imageDescriptorFromURI(URI.createURI(iconURI));
+				}
+				if (element.getWidget() instanceof ToolItem) {
+					ToolItem item = (ToolItem) element.getWidget();
+					if (text == null) {
+						text = item.getToolTipText();
+					}
+					if (iconDescriptor == null) {
+						Image image = item.getImage();
+						if (image != null) {
+							iconDescriptor = ImageDescriptor.createFromImage(image);
+						}
+					}
+				}
+				if (text == null) {
+					Object name = element.getTransientData().get("Name"); //$NON-NLS-1$
+					if (name != null) { // && ((String) name).length() != 0
+						text = (String) name;
+					} else {
+						text = getToolbarLabel(element.getElementId());
+					}
+				}
+
+				DisplayItem toolBarEntry = new DisplayItem(text, contributionItem);
+
+				if (iconDescriptor != null) {
+					toolBarEntry.setImageDescriptor(iconDescriptor);
+				}
+				toolBarEntry.setActionSet((ActionSet) idToActionSet.get(getActionSetID(element)));
+				if (toolBarEntry.getChildren().isEmpty()) {
+					toolBarEntry.setCheckState(getToolbarItemIsVisible(toolBarEntry));
+				}
+				parent.addChild(toolBarEntry);
 			}
-			toolBarEntry.setActionSet((ActionSet) idToActionSet
-					.get(getActionSetID(contributionItem)));
-			contributionItem.setVisible(true);// force parents to update
-			toolBarEntry.setCheckState(getToolbarItemIsVisible(toolBarEntry));
-			parent.addChild(toolBarEntry);
 		}
+	}
+
+	private ParameterizedCommand generateParameterizedCommand(final MHandledItem item,
+			final IEclipseContext lclContext) {
+		ECommandService cmdService = (ECommandService) lclContext.get(ECommandService.class
+				.getName());
+		Map<String, Object> parameters = null;
+		List<MParameter> modelParms = item.getParameters();
+		if (modelParms != null && !modelParms.isEmpty()) {
+			parameters = new HashMap<String, Object>();
+			for (MParameter mParm : modelParms) {
+				parameters.put(mParm.getName(), mParm.getValue());
+			}
+		}
+		ParameterizedCommand cmd = cmdService.createCommand(item.getCommand().getElementId(),
+				parameters);
+		item.setWbCommand(cmd);
+		return cmd;
+	}
+
+	public String getToolTipText(MItem item) {
+		String text = item.getLocalizedTooltip();
+		if (item instanceof MHandledItem) {
+			MHandledItem handledItem = (MHandledItem) item;
+			EBindingService bs = (EBindingService) context.get(EBindingService.class.getName());
+			ParameterizedCommand cmd = handledItem.getWbCommand();
+			if (cmd == null) {
+				cmd = generateParameterizedCommand(handledItem, context);
+			}
+			TriggerSequence sequence = bs.getBestSequenceFor(handledItem.getWbCommand());
+			if (sequence != null) {
+				if (text == null) {
+					try {
+						text = cmd.getName();
+					} catch (NotDefinedException e) {
+						return null;
+					}
+				}
+				text = text + " (" + sequence.format() + ')'; //$NON-NLS-1$
+			}
+			return text;
+		} else if (item instanceof MOpaqueMenuItem) {
+			Object opaque = ((MOpaqueMenuItem) item).getOpaqueItem();
+			if (opaque instanceof ActionContributionItem) {
+				return ((ActionContributionItem) opaque).getAction().getText();
+			}
+		} else if (item instanceof MOpaqueToolItem) {
+			Object opaque = ((MOpaqueToolItem) item).getOpaqueItem();
+			if (opaque instanceof ActionContributionItem) {
+				return ((ActionContributionItem) opaque).getAction().getToolTipText();
+			}
+		}
+		return text;
 	}
 
 	/**
