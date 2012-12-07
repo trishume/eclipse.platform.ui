@@ -9,6 +9,9 @@
  *     IBM Corporation - initial API and implementation
  *     Francis Upton - <francisu@ieee.org> - 
  *     		Fix for Bug 217777 [Workbench] Workbench event loop does not terminate if Display is closed
+ *     Tristan Hume - <trishume@gmail.com> -
+ *     		Fix for Bug 2369 [Workbench] Would like to be able to save workspace without exiting
+ *     		Implemented workbench auto-save to correctly restore state in case of crash.
  *******************************************************************************/
 
 package org.eclipse.ui.internal;
@@ -216,6 +219,7 @@ import org.eclipse.ui.menus.IMenuService;
 import org.eclipse.ui.model.IContributionService;
 import org.eclipse.ui.operations.IWorkbenchOperationSupport;
 import org.eclipse.ui.progress.IProgressService;
+import org.eclipse.ui.progress.WorkbenchJob;
 import org.eclipse.ui.services.IDisposable;
 import org.eclipse.ui.services.IEvaluationService;
 import org.eclipse.ui.services.IServiceScopes;
@@ -312,6 +316,12 @@ public final class Workbench extends EventManager implements IWorkbench {
 	static final String VERSION_STRING[] = { "0.046", "2.0" }; //$NON-NLS-1$ //$NON-NLS-2$
 
 	static final String DEFAULT_WORKBENCH_STATE_FILENAME = "workbench.xml"; //$NON-NLS-1$
+
+	/**
+	 * Interval at which to save workbench layout in milliseconds. Set to 10
+	 * minutes.
+	 */
+	static final int WORKBENCH_AUTO_SAVE_INTERVAL_MS = 10 * 60 * 1000;
 
 	/**
 	 * Holds onto the only instance of Workbench.
@@ -420,6 +430,8 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 	private IEclipseContext e4Context;
 
+	private E4Application e4app;
+
 	private IEventBroker eventBroker;
 
 	boolean initializationDone = false;
@@ -440,7 +452,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 	 * @since 3.0
 	 */
 	private Workbench(Display display, final WorkbenchAdvisor advisor, MApplication app,
-			IEclipseContext appContext) {
+			IEclipseContext appContext, E4Application e4app) {
 		super();
 		StartupThreading.setWorkbench(this);
 		if (instance != null && instance.isRunning()) {
@@ -450,6 +462,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 		Assert.isNotNull(advisor);
 		this.advisor = advisor;
 		this.display = display;
+		this.e4app = e4app;
 		application = app;
 		e4Context = appContext;
 		Workbench.instance = this;
@@ -560,7 +573,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 					// create the workbench instance
 					Workbench workbench = new Workbench(display, advisor, e4Workbench
-							.getApplication(), e4Workbench.getContext());
+							.getApplication(), e4Workbench.getContext(), e4app);
 
 					// prime the splash nice and early
 					if (createSplash)
@@ -1039,48 +1052,9 @@ public final class Workbench extends EventManager implements IWorkbench {
 			}
 		}
 
-		// discard editors that with non-ppersistable inputs
-		SafeRunner.run(new SafeRunnable() {
-			public void run() {
-				IWorkbenchWindow windows[] = getWorkbenchWindows();
-				for (int i = 0; i < windows.length; i++) {
-					IWorkbenchPage pages[] = windows[i].getPages();
-					for (int j = 0; j < pages.length; j++) {
-						List<EditorReference> editorReferences = ((WorkbenchPage) pages[j])
-								.getInternalEditorReferences();
-						List<EditorReference> referencesToClose = new ArrayList<EditorReference>();
-						for (EditorReference reference : editorReferences) {
-							IEditorPart editor = reference.getEditor(false);
-							if (editor != null && !reference.persist()) {
-								referencesToClose.add(reference);
-							}
-						}
-						
-						for (EditorReference reference : referencesToClose) {
-							((WorkbenchPage) pages[j]).closeEditor(reference);
-						}
-					}
-				}
-			}
-		});
-
-		// persist view states
-		SafeRunner.run(new SafeRunnable() {
-			public void run() {
-				IWorkbenchWindow windows[] = getWorkbenchWindows();
-				for (int i = 0; i < windows.length; i++) {
-					IWorkbenchPage pages[] = windows[i].getPages();
-					for (int j = 0; j < pages.length; j++) {
-						IViewReference[] references = pages[j].getViewReferences();
-						for (int k = 0; k < references.length; k++) {
-							if (references[k].getView(false) != null) {
-								((ViewReference) references[k]).persist();
-							}
-						}
-					}
-				}
-			}
-		});
+		// persist editor inputs and close editors that can't be persisted
+		// also persists views
+		persist(true);
 
 		if (!force && !isClosing) {
 			return false;
@@ -1123,6 +1097,68 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 		runEventLoop = false;
 		return true;
+	}
+
+	/**
+	 * Saves the state of the workbench in the same way that closing the it
+	 * would. Can be called while the editor is running so that if it crashes
+	 * the workbench state can be recovered.
+	 * 
+	 * @param shutdown
+	 *            If true, will close any editors that cannot be persisted. Will
+	 *            also skip saving the model to the disk since that is done
+	 *            later in shutdown.
+	 */
+	public void persist(final boolean shutdown) {
+		// persist editors that can be and possibly close the others
+		SafeRunner.run(new SafeRunnable() {
+			public void run() {
+				IWorkbenchWindow windows[] = getWorkbenchWindows();
+				for (int i = 0; i < windows.length; i++) {
+					IWorkbenchPage pages[] = windows[i].getPages();
+					for (int j = 0; j < pages.length; j++) {
+						List<EditorReference> editorReferences = ((WorkbenchPage) pages[j])
+								.getInternalEditorReferences();
+						List<EditorReference> referencesToClose = new ArrayList<EditorReference>();
+						for (EditorReference reference : editorReferences) {
+							IEditorPart editor = reference.getEditor(false);
+							if (editor != null && !reference.persist() && shutdown) {
+								referencesToClose.add(reference);
+							}
+						}
+						if (shutdown) {
+							for (EditorReference reference : referencesToClose) {
+								((WorkbenchPage) pages[j]).closeEditor(reference);
+							}
+						}
+					}
+				}
+			}
+		});
+
+		// persist view states
+		SafeRunner.run(new SafeRunnable() {
+			public void run() {
+				IWorkbenchWindow windows[] = getWorkbenchWindows();
+				for (int i = 0; i < windows.length; i++) {
+					IWorkbenchPage pages[] = windows[i].getPages();
+					for (int j = 0; j < pages.length; j++) {
+						IViewReference[] references = pages[j].getViewReferences();
+						for (int k = 0; k < references.length; k++) {
+							if (references[k].getView(false) != null) {
+								((ViewReference) references[k]).persist();
+							}
+						}
+					}
+				}
+			}
+		});
+
+		// now that we have updated the model, save it to workbench.xmi
+		// skip this during shutdown to be efficient since it is done again
+		// later
+		if (!shutdown)
+			e4app.saveModel();
 	}
 
 	/*
@@ -2562,6 +2598,18 @@ UIEvents.Context.TOPIC_CONTEXT,
 				// start eager plug-ins
 				startPlugins();
 				addStartupRegistryListener();
+				// start workspace auto-save
+				Job autoSaveJob = new WorkbenchJob("Saving Workspace") { //$NON-NLS-1$
+					@Override
+					public IStatus runInUIThread(IProgressMonitor monitor) {
+						persist(false);
+						// repeat
+						this.schedule(WORKBENCH_AUTO_SAVE_INTERVAL_MS);
+						return Status.OK_STATUS;
+					}
+				};
+				autoSaveJob.setSystem(true);
+				autoSaveJob.schedule(WORKBENCH_AUTO_SAVE_INTERVAL_MS);
 
 				// WWinPluginAction.refreshActionList();
 
