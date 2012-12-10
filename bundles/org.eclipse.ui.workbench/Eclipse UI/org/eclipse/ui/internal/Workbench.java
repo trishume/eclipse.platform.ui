@@ -321,7 +321,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 	 * Interval at which to save workbench layout in milliseconds. Set to 10
 	 * minutes.
 	 */
-	static final int WORKBENCH_AUTO_SAVE_INTERVAL_MS = 10 * 60 * 1000;
+	static final int WORKBENCH_AUTO_SAVE_INTERVAL_MS = 30 * 1000;
 
 	/**
 	 * Holds onto the only instance of Workbench.
@@ -1157,8 +1157,9 @@ public final class Workbench extends EventManager implements IWorkbench {
 		// now that we have updated the model, save it to workbench.xmi
 		// skip this during shutdown to be efficient since it is done again
 		// later
-		if (!shutdown)
+		if (!shutdown) {
 			e4app.saveModel();
+		}
 	}
 
 	/*

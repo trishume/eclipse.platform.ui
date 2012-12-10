@@ -122,16 +122,7 @@ public class ResourceHandler implements IModelResourceHandler {
 	}
 
 	public Resource loadMostRecentModel() {
-		File baseLocation;
-		try {
-			baseLocation = new File(URIUtil.toURI(instanceLocation.getURL()));
-		} catch (URISyntaxException e) {
-			throw new RuntimeException(e);
-		}
-		baseLocation = new File(baseLocation, ".metadata"); //$NON-NLS-1$
-		baseLocation = new File(baseLocation, ".plugins"); //$NON-NLS-1$
-		baseLocation = new File(baseLocation, "org.eclipse.e4.workbench"); //$NON-NLS-1$
-
+		File baseLocation = getBaseLocation();
 		// This is temporary code to migrate existing delta files into full models
 		if (deltaRestore && saveAndRestore && !clearPersistedState) {
 			File deltaFile = new File(baseLocation, "deltas.xml"); //$NON-NLS-1$
@@ -225,6 +216,38 @@ public class ResourceHandler implements IModelResourceHandler {
 	public void save() throws IOException {
 		if (saveAndRestore)
 			resource.save(null);
+	}
+
+	/**
+	 * Creates a resource with an app Model, used for saving copies of the main app model.
+	 * 
+	 * @param theApp
+	 *            the application model to add to the resource
+	 * @return a resource with a proper save path with the model as contents
+	 */
+	public Resource createResourceWithApp(MApplication theApp) {
+		URI saveLocation = URI.createFileURI(getWorkbenchSaveLocation().getAbsolutePath());
+		Resource res = resourceSetImpl.createResource(saveLocation);
+		res.getContents().add((EObject) theApp);
+		return res;
+	}
+
+	private File getWorkbenchSaveLocation() {
+		File workbenchData = new File(getBaseLocation(), "workbench.xmi"); //$NON-NLS-1$
+		return workbenchData;
+	}
+
+	private File getBaseLocation() {
+		File baseLocation;
+		try {
+			baseLocation = new File(URIUtil.toURI(instanceLocation.getURL()));
+		} catch (URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
+		baseLocation = new File(baseLocation, ".metadata"); //$NON-NLS-1$
+		baseLocation = new File(baseLocation, ".plugins"); //$NON-NLS-1$
+		baseLocation = new File(baseLocation, "org.eclipse.e4.workbench"); //$NON-NLS-1$
+		return baseLocation;
 	}
 
 	// Ensures that even models with error are loaded!
