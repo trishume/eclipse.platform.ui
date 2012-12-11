@@ -39,6 +39,7 @@ public class E4Workbench implements IWorkbench {
 
 	public static final String CLEAR_PERSISTED_STATE = "clearPersistedState"; //$NON-NLS-1$
 	public static final String DELTA_RESTORE = "deltaRestore"; //$NON-NLS-1$
+	public static final String MODEL_RESOURCE_HANDLER_OBJECT = "modelResourceHandlerObj"; //$NON-NLS-1$
 
 	public static final String RTL_MODE = "dir"; //$NON-NLS-1$
 

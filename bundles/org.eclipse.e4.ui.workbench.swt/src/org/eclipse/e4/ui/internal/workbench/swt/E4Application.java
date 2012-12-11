@@ -238,7 +238,7 @@ public class E4Application implements IApplication {
 
 		// This context will be used by the injector for its
 		// extended data suppliers
-		ContextInjectionFactory.setDefault(appContext);
+		// ContextInjectionFactory.setDefault(appContext);
 
 		// adds basic services to the contexts
 		initializeServices(appModel);
@@ -366,6 +366,7 @@ public class E4Application implements IApplication {
 
 		handler = (IModelResourceHandler) factory.create(resourceHandler,
 				eclipseContext);
+		eclipseContext.set(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT, handler);
 
 		Resource resource = handler.loadMostRecentModel();
 		theApp = (MApplication) resource.getContents().get(0);

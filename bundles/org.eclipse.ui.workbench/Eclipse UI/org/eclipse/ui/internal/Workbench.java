@@ -86,9 +86,12 @@ import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.basic.impl.BasicFactoryImpl;
 import org.eclipse.e4.ui.services.EContextService;
+import org.eclipse.e4.ui.workbench.IModelResourceHandler;
 import org.eclipse.e4.ui.workbench.IPresentationEngine;
 import org.eclipse.e4.ui.workbench.UIEvents;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.jface.action.ActionContributionItem;
@@ -430,8 +433,6 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 	private IEclipseContext e4Context;
 
-	private E4Application e4app;
-
 	private IEventBroker eventBroker;
 
 	boolean initializationDone = false;
@@ -452,7 +453,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 	 * @since 3.0
 	 */
 	private Workbench(Display display, final WorkbenchAdvisor advisor, MApplication app,
-			IEclipseContext appContext, E4Application e4app) {
+			IEclipseContext appContext) {
 		super();
 		StartupThreading.setWorkbench(this);
 		if (instance != null && instance.isRunning()) {
@@ -462,7 +463,6 @@ public final class Workbench extends EventManager implements IWorkbench {
 		Assert.isNotNull(advisor);
 		this.advisor = advisor;
 		this.display = display;
-		this.e4app = e4app;
 		application = app;
 		e4Context = appContext;
 		Workbench.instance = this;
@@ -573,7 +573,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 					// create the workbench instance
 					Workbench workbench = new Workbench(display, advisor, e4Workbench
-							.getApplication(), e4Workbench.getContext(), e4app);
+							.getApplication(), e4Workbench.getContext());
 
 					// prime the splash nice and early
 					if (createSplash)
@@ -1158,7 +1158,19 @@ public final class Workbench extends EventManager implements IWorkbench {
 		// skip this during shutdown to be efficient since it is done again
 		// later
 		if (!shutdown) {
-			e4app.saveModel();
+			MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
+			appCopy.getMenuContributions().clear();
+			appCopy.getToolBarContributions().clear();
+			appCopy.getTrimContributions().clear();
+			IModelResourceHandler handler = (IModelResourceHandler) e4Context
+					.get(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT);
+			Resource res = handler.createResourceWithApp(appCopy);
+			try {
+				res.save(null);
+			} catch (IOException e) {
+				// Just auto-save, we don't really care
+				e.printStackTrace();
+			}
 		}
 	}
 
