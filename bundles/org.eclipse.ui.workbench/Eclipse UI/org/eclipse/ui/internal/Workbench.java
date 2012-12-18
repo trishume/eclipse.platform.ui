@@ -1159,9 +1159,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 		// later
 		if (!shutdown) {
 			MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
-			appCopy.getMenuContributions().clear();
-			appCopy.getToolBarContributions().clear();
-			appCopy.getTrimContributions().clear();
+			cleanUpCopy(appCopy);
 			IModelResourceHandler handler = (IModelResourceHandler) e4Context
 					.get(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT);
 			Resource res = handler.createResourceWithApp(appCopy);
@@ -1172,6 +1170,22 @@ public final class Workbench extends EventManager implements IWorkbench {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	private void cleanUpCopy(MApplication appCopy) {
+		// clean up all trim bars that come from trim bar contributions
+		// the renderer keeps track of which trim bars need to be removed from
+		// the model.
+		/*
+		 * for(MWindow window : appCopy.getChildren()) { if (window instanceof
+		 * MTrimmedWindow) { MTrimmedWindow trimmedWindow = (MTrimmedWindow)
+		 * window; for (MTrimBar trimBar : trimmedWindow.getTrimBars()) {
+		 * TrimBarRenderer renderer = (TrimBarRenderer) trimBar.getRenderer();
+		 * if(renderer == null) continue; } } }
+		 */
+		appCopy.getMenuContributions().clear();
+		appCopy.getToolBarContributions().clear();
+		appCopy.getTrimContributions().clear();
 	}
 
 	/*
