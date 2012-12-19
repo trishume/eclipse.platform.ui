@@ -83,6 +83,9 @@ import org.eclipse.e4.ui.model.application.commands.impl.CommandsFactoryImpl;
 import org.eclipse.e4.ui.model.application.descriptor.basic.MPartDescriptor;
 import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
+import org.eclipse.e4.ui.model.application.ui.basic.MTrimBar;
+import org.eclipse.e4.ui.model.application.ui.basic.MTrimElement;
+import org.eclipse.e4.ui.model.application.ui.basic.MTrimmedWindow;
 import org.eclipse.e4.ui.model.application.ui.basic.MWindow;
 import org.eclipse.e4.ui.model.application.ui.basic.impl.BasicFactoryImpl;
 import org.eclipse.e4.ui.services.EContextService;
@@ -1174,18 +1177,25 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 	private void cleanUpCopy(MApplication appCopy) {
 		// clean up all trim bars that come from trim bar contributions
-		// the renderer keeps track of which trim bars need to be removed from
-		// the model.
-		/*
-		 * for(MWindow window : appCopy.getChildren()) { if (window instanceof
-		 * MTrimmedWindow) { MTrimmedWindow trimmedWindow = (MTrimmedWindow)
-		 * window; for (MTrimBar trimBar : trimmedWindow.getTrimBars()) {
-		 * TrimBarRenderer renderer = (TrimBarRenderer) trimBar.getRenderer();
-		 * if(renderer == null) continue; } } }
-		 */
+		// the trim elements that need to be removed are stored in the trimBar.
+		for (MWindow window : appCopy.getChildren()) {
+			if (window instanceof MTrimmedWindow) {
+				MTrimmedWindow trimmedWindow = (MTrimmedWindow) window;
+				for (MTrimBar trimBar : trimmedWindow.getTrimBars()) {
+					cleanUpTrimBar(trimBar);
+				}
+			}
+		}
 		appCopy.getMenuContributions().clear();
 		appCopy.getToolBarContributions().clear();
 		appCopy.getTrimContributions().clear();
+	}
+
+	private void cleanUpTrimBar(MTrimBar element) {
+		for (MTrimElement child : element.getPendingCleanup()) {
+			element.getChildren().remove(child);
+		}
+		element.getPendingCleanup().clear();
 	}
 
 	/*
