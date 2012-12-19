@@ -377,7 +377,7 @@
       </eClassifiers>
       <eClassifiers xsi:type="ecore:EClass" name="Window">
         <eStructuralFeatures xsi:type="ecore:EReference" name="mainMenu" eType="#//ui/menu/Menu"
-            containment="true"/>
+            transient="true" containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="x" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"
             defaultValueLiteral="-2147483648"/>
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="y" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"

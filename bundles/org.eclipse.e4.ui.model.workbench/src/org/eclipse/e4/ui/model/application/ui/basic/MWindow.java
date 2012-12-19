@@ -52,7 +52,7 @@ public interface MWindow extends MElementContainer<MWindowElement>, MUILabel, MC
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Main Menu</em>' containment reference.
 	 * @see #setMainMenu(MMenu)
-	 * @model containment="true"
+	 * @model containment="true" transient="true"
 	 * @generated
 	 */
 	MMenu getMainMenu();
