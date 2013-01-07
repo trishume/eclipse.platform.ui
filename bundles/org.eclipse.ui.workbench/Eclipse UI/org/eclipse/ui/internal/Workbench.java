@@ -1181,6 +1181,10 @@ public final class Workbench extends EventManager implements IWorkbench {
 		for (MWindow window : appCopy.getChildren()) {
 			if (window instanceof MTrimmedWindow) {
 				MTrimmedWindow trimmedWindow = (MTrimmedWindow) window;
+				// clean up the main menu to avoid duplicate menu items
+				window.setMainMenu(null);
+				// clean up trim bars created through contributions
+				// to avoid duplicate toolbars
 				for (MTrimBar trimBar : trimmedWindow.getTrimBars()) {
 					cleanUpTrimBar(trimBar);
 				}
