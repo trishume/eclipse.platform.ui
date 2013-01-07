@@ -2640,10 +2640,11 @@ UIEvents.Context.TOPIC_CONTEXT,
 				startPlugins();
 				addStartupRegistryListener();
 				// start workspace auto-save
-				Job autoSaveJob = new WorkbenchJob("Saving Workspace") { //$NON-NLS-1$
+				Job autoSaveJob = new WorkbenchJob("Workbench Auto-Save Job") { //$NON-NLS-1$
 					@Override
 					public IStatus runInUIThread(IProgressMonitor monitor) {
 						persist(false);
+						monitor.done();
 						// repeat
 						this.schedule(WORKBENCH_AUTO_SAVE_INTERVAL_MS);
 						return Status.OK_STATUS;
