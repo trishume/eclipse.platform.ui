@@ -324,12 +324,6 @@ public final class Workbench extends EventManager implements IWorkbench {
 	static final String DEFAULT_WORKBENCH_STATE_FILENAME = "workbench.xml"; //$NON-NLS-1$
 
 	/**
-	 * Interval at which to save workbench layout in milliseconds. Set to 10
-	 * minutes.
-	 */
-	static final int WORKBENCH_AUTO_SAVE_INTERVAL_MS = 30 * 1000;
-
-	/**
 	 * Holds onto the only instance of Workbench.
 	 */
 	private static Workbench instance;
@@ -2640,18 +2634,23 @@ UIEvents.Context.TOPIC_CONTEXT,
 				startPlugins();
 				addStartupRegistryListener();
 				// start workspace auto-save
-				Job autoSaveJob = new WorkbenchJob("Workbench Auto-Save Job") { //$NON-NLS-1$
-					@Override
-					public IStatus runInUIThread(IProgressMonitor monitor) {
-						persist(false);
-						monitor.done();
-						// repeat
-						this.schedule(WORKBENCH_AUTO_SAVE_INTERVAL_MS);
-						return Status.OK_STATUS;
-					}
-				};
-				autoSaveJob.setSystem(true);
-				autoSaveJob.schedule(WORKBENCH_AUTO_SAVE_INTERVAL_MS);
+				final int minuteSaveInterval = getPreferenceStore().getInt(
+						IPreferenceConstants.WORKBENCH_SAVE_INTERVAL);
+				if (minuteSaveInterval > 0) {
+					final int millisecondInterval = minuteSaveInterval * 60 * 1000;
+					Job autoSaveJob = new WorkbenchJob("Workbench Auto-Save Job") { //$NON-NLS-1$
+						@Override
+						public IStatus runInUIThread(IProgressMonitor monitor) {
+							persist(false);
+							monitor.done();
+							// repeat
+							this.schedule(millisecondInterval);
+							return Status.OK_STATUS;
+						}
+					};
+					autoSaveJob.setSystem(true);
+					autoSaveJob.schedule(millisecondInterval);
+				}
 
 				// WWinPluginAction.refreshActionList();
 

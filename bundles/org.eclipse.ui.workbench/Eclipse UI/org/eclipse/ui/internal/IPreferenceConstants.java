@@ -234,4 +234,13 @@ public interface IPreferenceConstants {
 	 */
 	public static final String USE_32_THREADING = "use32Threading"; //$NON-NLS-1$
 
+	/**
+	 * Preference value that specifies the time interval in minutes between
+	 * workbench auto-saves. If the value is zero it disables workbench
+	 * auto-save.
+	 * 
+	 * @since @4.3
+	 */
+	public static final String WORKBENCH_SAVE_INTERVAL = "WORKBENCH_SAVE_INTERVAL"; //$NON-NLS-1$
+
 }

@@ -58,9 +58,13 @@ public class WorkbenchPreferenceInitializer extends
 		node.putBoolean(IPreferenceConstants.OPEN_AFTER_DELAY, false);
 		node.putInt(IPreferenceConstants.RECENT_FILES, 4);
 
-		
+		// FIXME this does not actually set the default since it is the wrong
+		// node. It works because the default-default is false.
 		node.putBoolean(IWorkbenchPreferenceConstants.DISABLE_OPEN_EDITOR_IN_PLACE, false);
 		
+		// 10 minute save interval
+		node.putInt(IPreferenceConstants.WORKBENCH_SAVE_INTERVAL, 10);
+
 		node.putBoolean(IPreferenceConstants.USE_IPERSISTABLE_EDITORS, true);
 		
 		node.putBoolean(IPreferenceConstants.COOLBAR_VISIBLE, true);
@@ -95,6 +99,8 @@ public class WorkbenchPreferenceInitializer extends
 		node.putBoolean("DISABLE_DIALOG_FONT", false); //$NON-NLS-1$
 
 		// Heap status preferences
+		// FIXME this does not actually set the default since it is the wrong
+		// node. It works because the default-default is false.
 		node.putBoolean(IWorkbenchPreferenceConstants.SHOW_MEMORY_MONITOR, false);
 		node.putInt(IHeapStatusConstants.PREF_UPDATE_INTERVAL, 500);
 		node.putBoolean(IHeapStatusConstants.PREF_SHOW_MAX, false);
