@@ -438,6 +438,8 @@ public final class Workbench extends EventManager implements IWorkbench {
 
 	private Listener backForwardListener;
 
+	private Job autoSaveJob;
+
 	/**
 	 * Creates a new workbench.
 	 * 
@@ -1028,6 +1030,11 @@ public final class Workbench extends EventManager implements IWorkbench {
 		if (!force && !isClosing) {
 			return false;
 		}
+		
+		// stop the workbench auto-save job so it can't conflict with shutdown
+		if(autoSaveJob != null) {
+			autoSaveJob.cancel();
+		}
 
 		boolean closeEditors = !force
 				&& PrefUtil.getAPIPreferenceStore().getBoolean(
@@ -1106,7 +1113,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 	 *            also skip saving the model to the disk since that is done
 	 *            later in shutdown.
 	 */
-	public void persist(final boolean shutdown) {
+	private void persist(final boolean shutdown) {
 		// persist editors that can be and possibly close the others
 		SafeRunner.run(new SafeRunnable() {
 			public void run() {
@@ -1155,17 +1162,25 @@ public final class Workbench extends EventManager implements IWorkbench {
 		// skip this during shutdown to be efficient since it is done again
 		// later
 		if (!shutdown) {
-			MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
-			cleanUpCopy(appCopy);
-			IModelResourceHandler handler = (IModelResourceHandler) e4Context
-					.get(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT);
-			Resource res = handler.createResourceWithApp(appCopy);
-			try {
-				res.save(null);
-			} catch (IOException e) {
-				// Just auto-save, we don't really care
-				e.printStackTrace();
-			}
+			persistWorkbenchModel();
+		}
+	}
+
+	/**
+	 * Copy the model, clean it up and write it out to workbench.xmi. Called as
+	 * part of persist(false) during auto-save.
+	 */
+	private void persistWorkbenchModel() {
+		MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
+		IModelResourceHandler handler = (IModelResourceHandler) e4Context
+				.get(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT);
+		Resource res = handler.createResourceWithApp(appCopy);
+		cleanUpCopy(appCopy);
+		try {
+			res.save(null);
+		} catch (IOException e) {
+			// Just auto-save, we don't really care
+			e.printStackTrace();
 		}
 	}
 
@@ -2638,7 +2653,7 @@ UIEvents.Context.TOPIC_CONTEXT,
 						IPreferenceConstants.WORKBENCH_SAVE_INTERVAL);
 				if (minuteSaveInterval > 0) {
 					final int millisecondInterval = minuteSaveInterval * 60 * 1000;
-					Job autoSaveJob = new WorkbenchJob("Workbench Auto-Save Job") { //$NON-NLS-1$
+					autoSaveJob = new WorkbenchJob("Workbench Auto-Save Job") { //$NON-NLS-1$
 						@Override
 						public IStatus runInUIThread(IProgressMonitor monitor) {
 							persist(false);
