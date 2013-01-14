@@ -1171,20 +1171,30 @@ public final class Workbench extends EventManager implements IWorkbench {
 	 * part of persist(false) during auto-save.
 	 */
 	private void persistWorkbenchModel() {
-		MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
-		IModelResourceHandler handler = (IModelResourceHandler) e4Context
+		final MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
+		final IModelResourceHandler handler = (IModelResourceHandler) e4Context
 				.get(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT);
-		Resource res = handler.createResourceWithApp(appCopy);
-		cleanUpCopy(appCopy);
-		try {
-			res.save(null);
-		} catch (IOException e) {
-			// Just auto-save, we don't really care
-			e.printStackTrace();
-		}
+
+		Job cleanAndSaveJob = new Job("Workbench Auto-Save Background Job") { //$NON-NLS-1$
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				final Resource res = handler.createResourceWithApp(appCopy);
+				cleanUpCopy(appCopy);
+				try {
+					res.save(null);
+				} catch (IOException e) {
+					// Just auto-save, we don't really care
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+		cleanAndSaveJob.setPriority(Job.SHORT);
+		cleanAndSaveJob.setSystem(true);
+		cleanAndSaveJob.schedule();
 	}
 
-	private void cleanUpCopy(MApplication appCopy) {
+	private static void cleanUpCopy(MApplication appCopy) {
 		// clean up all trim bars that come from trim bar contributions
 		// the trim elements that need to be removed are stored in the trimBar.
 		for (MWindow window : appCopy.getChildren()) {
@@ -1204,7 +1214,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 		appCopy.getTrimContributions().clear();
 	}
 
-	private void cleanUpTrimBar(MTrimBar element) {
+	private static void cleanUpTrimBar(MTrimBar element) {
 		for (MTrimElement child : element.getPendingCleanup()) {
 			element.getChildren().remove(child);
 		}
