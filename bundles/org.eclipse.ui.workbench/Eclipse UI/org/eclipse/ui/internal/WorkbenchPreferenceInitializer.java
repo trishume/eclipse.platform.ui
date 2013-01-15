@@ -62,8 +62,8 @@ public class WorkbenchPreferenceInitializer extends
 		// node. It works because the default-default is false.
 		node.putBoolean(IWorkbenchPreferenceConstants.DISABLE_OPEN_EDITOR_IN_PLACE, false);
 		
-		// 10 minute save interval
-		node.putInt(IPreferenceConstants.WORKBENCH_SAVE_INTERVAL, 10);
+		// 5 minute workbench save interval
+		node.putInt(IPreferenceConstants.WORKBENCH_SAVE_INTERVAL, 5);
 
 		node.putBoolean(IPreferenceConstants.USE_IPERSISTABLE_EDITORS, true);
 		
