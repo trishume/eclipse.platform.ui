@@ -1034,6 +1034,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 		// stop the workbench auto-save job so it can't conflict with shutdown
 		if(autoSaveJob != null) {
 			autoSaveJob.cancel();
+			autoSaveJob = null;
 		}
 
 		boolean closeEditors = !force
@@ -1172,8 +1173,7 @@ public final class Workbench extends EventManager implements IWorkbench {
 	 */
 	private void persistWorkbenchModel() {
 		final MApplication appCopy = (MApplication) EcoreUtil.copy((EObject) application);
-		final IModelResourceHandler handler = (IModelResourceHandler) e4Context
-				.get(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT);
+		final IModelResourceHandler handler = e4Context.get(IModelResourceHandler.class);
 
 		Job cleanAndSaveJob = new Job("Workbench Auto-Save Background Job") { //$NON-NLS-1$
 			@Override
@@ -2659,17 +2659,18 @@ UIEvents.Context.TOPIC_CONTEXT,
 				startPlugins();
 				addStartupRegistryListener();
 				// start workspace auto-save
-				final int minuteSaveInterval = getPreferenceStore().getInt(
-						IPreferenceConstants.WORKBENCH_SAVE_INTERVAL);
-				if (minuteSaveInterval > 0) {
-					final int millisecondInterval = minuteSaveInterval * 60 * 1000;
+				final int millisecondInterval = getAutoSaveJobTime();
+				if (millisecondInterval > 0) {
 					autoSaveJob = new WorkbenchJob("Workbench Auto-Save Job") { //$NON-NLS-1$
 						@Override
 						public IStatus runInUIThread(IProgressMonitor monitor) {
+							final int nextDelay = getAutoSaveJobTime();
 							persist(false);
 							monitor.done();
 							// repeat
-							this.schedule(millisecondInterval);
+							if (nextDelay > 0) {
+								this.schedule(nextDelay);
+							}
 							return Status.OK_STATUS;
 						}
 					};
@@ -2710,6 +2711,13 @@ UIEvents.Context.TOPIC_CONTEXT,
 
 		// restart or exit based on returnCode
 		return returnCode;
+	}
+
+	private int getAutoSaveJobTime() {
+		final int minuteSaveInterval = getPreferenceStore().getInt(
+				IPreferenceConstants.WORKBENCH_SAVE_INTERVAL);
+		final int millisecondInterval = minuteSaveInterval * 60 * 1000;
+		return millisecondInterval;
 	}
 
 

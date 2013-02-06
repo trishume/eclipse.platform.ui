@@ -366,7 +366,7 @@ public class E4Application implements IApplication {
 
 		handler = (IModelResourceHandler) factory.create(resourceHandler,
 				eclipseContext);
-		eclipseContext.set(E4Workbench.MODEL_RESOURCE_HANDLER_OBJECT, handler);
+		eclipseContext.set(IModelResourceHandler.class, handler);
 
 		Resource resource = handler.loadMostRecentModel();
 		theApp = (MApplication) resource.getContents().get(0);

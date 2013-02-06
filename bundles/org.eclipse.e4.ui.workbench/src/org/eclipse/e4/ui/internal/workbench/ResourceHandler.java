@@ -130,7 +130,7 @@ public class ResourceHandler implements IModelResourceHandler {
 				MApplication appElement = null;
 				try {
 					// create new resource in case code below fails somewhere
-					File workbenchData = new File(baseLocation, "workbench.xmi"); //$NON-NLS-1$			
+					File workbenchData = getWorkbenchSaveLocation();
 					URI restoreLocationNew = URI.createFileURI(workbenchData.getAbsolutePath());
 					resource = resourceSetImpl.createResource(restoreLocationNew);
 
@@ -170,7 +170,7 @@ public class ResourceHandler implements IModelResourceHandler {
 			}
 		}
 
-		File workbenchData = new File(baseLocation, "workbench.xmi"); //$NON-NLS-1$			
+		File workbenchData = getWorkbenchSaveLocation();
 
 		if (clearPersistedState && workbenchData.exists())
 			workbenchData.delete();
@@ -195,10 +195,7 @@ public class ResourceHandler implements IModelResourceHandler {
 		if (resource == null) {
 			Resource applicationResource = loadResource(applicationDefinitionInstance);
 			MApplication theApp = (MApplication) applicationResource.getContents().get(0);
-			if (restoreLocation == null)
-				restoreLocation = URI.createFileURI(workbenchData.getAbsolutePath());
-			resource = resourceSetImpl.createResource(restoreLocation);
-			resource.getContents().add((EObject) theApp);
+			resource = createResourceWithApp(theApp);
 		}
 
 		// Add model items described in the model extension point
